@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Plugin Name: User Review Box
  * Plugin URI: https://www.yourwebsite.com/user-review-box
@@ -14,59 +15,71 @@
  * WC tested up to: 5.0.0
  */
 
-
- function user_review_box_form() {
-    ob_start(); // Start output buffering
-    ?>
-    <form id="user-review-box-form">
-        <label for="rating">Rating:</label>
-        <select id="rating" name="rating">
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-        </select>
-        <label for="email">Email:</label>
-        <input type="email" id="email" name="email" required>
-        <button class="submit-review">Submit Review</button>
-    </form>
-    <?php
-    return ob_get_clean(); // End output buffering and return the form HTML
-}
-
-add_shortcode('user_review_box', 'user_review_box_form');
-
-function user_review_box_form_submission() {
-    // Check if the form was submitted
-    if ($_SERVER["REQUEST_METHOD"] == "POST") {
-        // Validate the email address
-        $email = filter_var($_POST["email"], FILTER_VALIDATE_EMAIL);
-        if ($email === false) {
-            echo "Invalid email address.";
-            return;
-        }
-
-        // Submit the email to the chosen API
-        // This is just a placeholder - you'll need to replace this with the actual API call
-        $api_choice = get_option('user_review_box_api_choice');
-        if ($api_choice == 'activecampaign') {
-            // Submit to ActiveCampaign
-        } else if ($api_choice == 'convertkit') {
-            // Submit to ConvertKit
-        }
+class User_Review_Box
+{
+    public function __construct()
+    {
+        add_shortcode('user_review_box', array($this,  'user_review_box_form'));
+        // add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts_styles'));
+        register_activation_hook(__FILE__, array($this, 'set_default_options'));
+        // register_deactivation_hook(__FILE__, array($this, 'delete_default_options'));
     }
 
-    // The rest of your function goes here...
+    function set_default_options()
+    {
+        //     if (!get_option('user_review_box_options')) {
+        //         $options = array(
+        //             'active_campaign_api_url' => '',
+        //             'active_campaign_api_key' => '',
+        //             'active_campaign_list_id' => '',
+        //             'convertkit_api_url' => '',
+        //             'convertkit_api_key' => '',
+        //             'convertkit_form_id' => '',
+        //         );
+        //         add_option('user_review_box_options', $options);
+        //     }
+
+        $options =  get_option('user_review_box_options', array());
+
+        $new_options['ga_account_id'] = 'UA-123456789-1';
+        $new_options['ga_domain'] = 'yourwebsite.com';
+
+        $merged_options =  wp_parse_args($new_options, $options);
+
+        $compare_options = array_diff_key($new_options, $options);
+
+        if (!empty($options) || !empty($compare_options)) {
+            update_option('user_review_box_options', $merged_options);
+        }
+
+        return $merged_options;
+    }
+
+    function delete_default_options()
+    {
+        delete_option('user_review_box_options');
+    }
+
+    function user_review_box_form()
+    {
+        ob_start(); // Start output buffering
+?>
+        <form id="user-review-box-form">
+            <label for="rating">Rating:</label>
+            <select id="rating" name="rating">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+            </select>
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+            <button class="submit-review">Submit Review</button>
+        </form>
+<?php
+        return ob_get_clean(); // End output buffering and return the form HTML
+    }
 }
 
-// add javascript to footer
-add_action('wp_footer', 'user_review_box_scripts');
-
-// add script to footer
-function user_review_box_scripts() {
-    // enqueue the script
-    wp_enqueue_script('user-review-box', plugin_dir_url(__FILE__) . 'user-review-box.js', array('jquery'), '1.0.0', true);
-    
-}
-
+$my_user_review_box = new User_Review_Box();
